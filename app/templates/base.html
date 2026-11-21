@@ -1,58 +1,44 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{% block title %}DevFlow{% endblock %}</title>
     <meta
       name="description"
-      content="DevFlow — a demonstration platform for an automated CI/CD pipeline built with GitHub Actions, Docker and Flask."
+      content="DevFlow — a small Flask application used to demonstrate a GitHub Actions, Docker and Render delivery pipeline."
     />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
     <link
       rel="icon"
-      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%2338bdf8'/><path d='M26 64l24-28 24 28' stroke='%230b1220' stroke-width='9' fill='none' stroke-linecap='round'/></svg>"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%2316150f'/><path d='M8 22V10h6.5M8 16h5' stroke='%23f7f6f2' stroke-width='2' fill='none'/></svg>"
     />
   </head>
   <body>
-    <a class="skip-link" href="#main">Skip to content</a>
+    <a class="skip" href="#main">skip to content</a>
 
-    <header class="site-header">
-      <div class="container header-inner">
-        <a class="brand" href="{{ url_for('main.index') }}">
-          <span class="brand-mark" aria-hidden="true">
-            <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
-              <path d="M4 15l8-9 8 9" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-          </span>
-          <span class="brand-text">
-            <strong>{{ app_name|capitalize }}</strong>
-            <small>CI/CD demonstration platform</small>
-          </span>
-        </a>
-
-        <nav class="header-actions" aria-label="Page actions">
-          <a class="nav-link" href="#pipeline">Pipeline</a>
-          <a class="nav-link" href="#api">API</a>
-          <button id="theme-toggle" class="icon-button" type="button" aria-pressed="true" aria-label="Switch to light theme">
-            <span class="theme-icon" aria-hidden="true">☾</span>
-            <span class="theme-label">Dark</span>
+    <header class="masthead">
+      <div class="wrap masthead-row">
+        <p class="wordmark">
+          <a href="{{ url_for('main.index') }}">DevFlow</a>
+          <span class="slash">/</span> ci/cd demo
+        </p>
+        <nav class="nav" aria-label="Page sections">
+          <a href="#pipeline">pipeline</a>
+          <a href="#api">api</a>
+          <button id="theme-toggle" class="theme" type="button" aria-pressed="false">
+            <span class="theme-label">theme: light</span>
           </button>
         </nav>
       </div>
     </header>
 
-    <main id="main">{% block content %}{% endblock %}</main>
+    <main id="main" class="wrap">{% block content %}{% endblock %}</main>
 
-    <footer class="site-footer">
-      <div class="container footer-inner">
-        <p>
-          DevFlow <span class="muted">v{{ version }}</span> · {{ environment }} environment ·
-          Flask + Gunicorn + Docker
-        </p>
-        <p class="muted">
-          Pipeline status is tracked in GitHub Actions — this dashboard never invents build results.
-        </p>
+    <footer class="footer">
+      <div class="wrap footer-row">
+        <p>devflow v{{ version }} · {{ environment }} · flask + gunicorn + docker</p>
+        <p class="note">build results live in GitHub Actions; this page describes configuration only.</p>
       </div>
     </footer>
 

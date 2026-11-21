@@ -28,10 +28,8 @@
     var isDark = theme === "dark";
     button.setAttribute("aria-pressed", String(isDark));
     button.setAttribute("aria-label", isDark ? "Switch to light theme" : "Switch to dark theme");
-    var icon = button.querySelector(".theme-icon");
     var label = button.querySelector(".theme-label");
-    if (icon) icon.textContent = isDark ? "☾" : "☀";
-    if (label) label.textContent = isDark ? "Dark" : "Light";
+    if (label) label.textContent = isDark ? "theme: dark" : "theme: light";
   }
 
   function initialTheme() {

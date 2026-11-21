@@ -26,6 +26,9 @@ coverage.xml
 htmlcov/
 junit.xml
 
+# Freebuff workspace metadata (never part of the project)
+.freebuff/
+
 # Editors and OS files
 .vscode/
 .idea/
