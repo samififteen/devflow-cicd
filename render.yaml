@@ -1,0 +1,22 @@
+# Render Blueprint — deploys DevFlow as a Docker web service.
+# Docs: https://render.com/docs/blueprint-spec
+#
+# Note: Render's free plan may change and free instances sleep after a period of
+# inactivity, which makes the first request after a pause slow. The CI/CD
+# workflow's health check retries for up to 5 minutes to tolerate cold starts.
+
+services:
+  - type: web
+    name: devflow
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    region: oregon
+    healthCheckPath: /health
+    autoDeploy: false
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: WEB_CONCURRENCY
+        value: "2"

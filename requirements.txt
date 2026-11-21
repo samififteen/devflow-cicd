@@ -1,0 +1,3 @@
+# Runtime dependencies (installed in the Docker image and on the host).
+Flask==3.0.3
+gunicorn==23.0.0

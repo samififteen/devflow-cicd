@@ -1,0 +1,141 @@
+{% extends "base.html" %} {% block title %}DevFlow · CI/CD pipeline dashboard{% endblock %} {% block
+content %}
+<section class="hero">
+  <div class="container hero-inner">
+    <div class="hero-copy">
+      <span class="pill">Continuous integration · Continuous delivery</span>
+      <h1>
+        Ship every change<br />
+        <span class="accent">through an automated pipeline.</span>
+      </h1>
+      <p class="lede">
+        DevFlow is a small Flask application wrapped in a real CI/CD pipeline: every push runs code
+        quality checks and tests, builds a Docker image, publishes it to GitHub Container Registry and
+        deploys it to a hosting platform — then verifies that the deployed service answers
+        <code>/health</code>.
+      </p>
+      <div class="hero-actions">
+        <a class="button primary" href="#pipeline">Explore the pipeline</a>
+        <a class="button ghost" href="/api/pipeline">View pipeline JSON</a>
+      </div>
+    </div>
+
+    <div class="hero-panel" aria-label="Application status">
+      <div class="panel-head">
+        <span class="dot" aria-hidden="true"></span>
+        <span>runtime status</span>
+        <button id="refresh-status" class="text-button" type="button">Refresh</button>
+      </div>
+      <dl class="status-list">
+        <div>
+          <dt>Health</dt>
+          <dd>
+            <span id="health-badge" class="badge badge-pending" data-state="pending">checking…</span>
+          </dd>
+        </div>
+        <div>
+          <dt>Version</dt>
+          <dd id="app-version">v{{ version }}</dd>
+        </div>
+        <div>
+          <dt>Environment</dt>
+          <dd><code>{{ environment }}</code></dd>
+        </div>
+        <div>
+          <dt>Python</dt>
+          <dd><code>{{ runtime.python_version }}</code></dd>
+        </div>
+        <div>
+          <dt>Commit</dt>
+          <dd><code id="commit-sha">{{ build.commit or "not available" }}</code></dd>
+        </div>
+        <div>
+          <dt>Deployment</dt>
+          <dd>Docker image · Gunicorn · Render</dd>
+        </div>
+      </dl>
+      <p class="panel-foot">
+        The badge above calls <code>GET /health</code> from your browser, so it always reflects the
+        instance you are looking at.
+      </p>
+    </div>
+  </div>
+</section>
+
+<section class="container stats" aria-label="Project facts">
+  <article class="stat-card">
+    <h2>Backend</h2>
+    <p>Python 3.12 + Flask application factory, served by Gunicorn in production.</p>
+  </article>
+  <article class="stat-card">
+    <h2>Automation</h2>
+    <p>GitHub Actions runs Ruff, pytest and a Docker build on every pull request.</p>
+  </article>
+  <article class="stat-card">
+    <h2>Delivery</h2>
+    <p>Images are published to GHCR tagged with the commit SHA; deploys run only from main.</p>
+  </article>
+  <article class="stat-card">
+    <h2>Verification</h2>
+    <p>After a deploy the workflow polls <code>/health</code> and fails if the service is down.</p>
+  </article>
+</section>
+
+<section id="pipeline" class="section">
+  <div class="container">
+    <header class="section-head">
+      <h2>Pipeline stages</h2>
+      <p>
+        These stages are <strong>configured</strong> in <code>.github/workflows/</code>. They describe
+        what the pipeline does — actual run results live in the repository's Actions tab.
+      </p>
+    </header>
+
+    <ol class="stage-grid">
+      {% for stage in stages %}
+      <li class="stage-card">
+        <div class="stage-top">
+          <span class="stage-index">0{{ stage.order if stage.order else loop.index }}</span>
+          <span class="chip">{{ stage.tool }}</span>
+        </div>
+        <h3>{{ stage.name }}</h3>
+        <p>{{ stage.description }}</p>
+        <code class="stage-path">{{ stage.workflow }}</code>
+      </li>
+      {% endfor %}
+    </ol>
+  </div>
+</section>
+
+<section class="section section-alt">
+  <div class="container two-col">
+    <div>
+      <header class="section-head left">
+        <h2>Latest build information</h2>
+        <p>
+          Values come from <code>GET /api/info</code>, which reads CI metadata from the environment.
+          When DevFlow runs from a local checkout there is no build metadata, so it is reported as
+          unavailable instead of being simulated.
+        </p>
+      </header>
+      <ul class="build-list">
+        <li><span>Commit</span><code id="build-commit">{{ build.commit or "—" }}</code></li>
+        <li><span>Build number</span><code id="build-number">{{ build.build_number or "—" }}</code></li>
+        <li><span>Branch</span><code id="build-branch">{{ build.branch or "—" }}</code></li>
+        <li><span>Metadata collected</span><code id="build-time">{{ build.collected_at }}</code></li>
+      </ul>
+    </div>
+
+    <div id="api" class="api-card">
+      <h2>API surface</h2>
+      <p>Everything the dashboard shows is available as JSON.</p>
+      <ul class="endpoint-list">
+        <li><code>GET /health</code><span>Liveness and readiness probe</span></li>
+        <li><code>GET /api/info</code><span>Version, environment, runtime, build</span></li>
+        <li><code>GET /api/pipeline</code><span>Configured CI/CD stages</span></li>
+      </ul>
+      <a class="button ghost small" href="/api/info">Open /api/info</a>
+    </div>
+  </div>
+</section>
+{% endblock %}

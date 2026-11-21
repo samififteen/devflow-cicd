@@ -1,0 +1,146 @@
+name: CD
+
+# Runs only after the CI workflow succeeds on main (or when started manually).
+# Pull requests never reach this workflow.
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Why is this manual deployment being triggered?"
+        required: false
+        default: "Manual deployment"
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  IMAGE_NAME: ghcr.io/${{ github.repository }}
+
+jobs:
+  publish:
+    name: Publish image to GHCR
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+      sha: ${{ steps.meta.outputs.sha }}
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Resolve image metadata
+        id: meta
+        run: |
+          set -euo pipefail
+          image="$(echo "${IMAGE_NAME}" | tr '[:upper:]' '[:lower:]')"
+          sha="$(git rev-parse HEAD)"
+          echo "image=${image}" >> "$GITHUB_OUTPUT"
+          echo "sha=${sha}" >> "$GITHUB_OUTPUT"
+          echo "Publishing ${image}:${sha}"
+
+      - name: Log in to GitHub Container Registry
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${GHCR_TOKEN}" ]; then
+            echo "::error::GITHUB_TOKEN is unavailable; check the packages: write permission."
+            exit 1
+          fi
+          printf '%s' "${GHCR_TOKEN}" | docker login ghcr.io --username "${{ github.actor }}" --password-stdin
+
+      - name: Build and push
+        env:
+          IMAGE: ${{ steps.meta.outputs.image }}
+          SHA: ${{ steps.meta.outputs.sha }}
+        run: |
+          set -euo pipefail
+          docker build --tag "${IMAGE}:${SHA}" --tag "${IMAGE}:latest" .
+          docker push "${IMAGE}:${SHA}"
+          docker push "${IMAGE}:latest"
+
+  deploy:
+    name: Deploy to production
+    needs: publish
+    # Enable by creating the repository variable DEPLOY_ENABLED=true and the
+    # secret RENDER_DEPLOY_HOOK_URL. Without them the job is skipped, not failed.
+    if: vars.DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: ${{ vars.APP_BASE_URL }}
+    permissions:
+      contents: read
+    steps:
+      - name: Check deployment configuration
+        env:
+          DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+          APP_BASE_URL: ${{ vars.APP_BASE_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "${DEPLOY_HOOK_URL}" ]; then
+            echo "::error::Missing secret RENDER_DEPLOY_HOOK_URL (Render → Service → Settings → Deploy Hook)."
+            exit 1
+          fi
+          if [ -z "${APP_BASE_URL}" ]; then
+            echo "::error::Missing repository variable APP_BASE_URL, used to verify /health after deploy."
+            exit 1
+          fi
+
+      - name: Trigger Render deploy hook
+        env:
+          DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+          IMAGE_TAG: ${{ needs.publish.outputs.sha }}
+        run: |
+          set -euo pipefail
+          echo "Triggering deployment for commit ${IMAGE_TAG}"
+          http_code="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
+            --request POST "${DEPLOY_HOOK_URL}")"
+          echo "Deploy hook responded with HTTP ${http_code}"
+          case "${http_code}" in
+            2*) ;;
+            *)
+              echo "::error::Deploy hook responded with HTTP ${http_code}"
+              exit 1
+              ;;
+          esac
+
+      - name: Verify deployed health endpoint
+        env:
+          APP_BASE_URL: ${{ vars.APP_BASE_URL }}
+        run: |
+          set -euo pipefail
+          url="${APP_BASE_URL%/}/health"
+          for attempt in $(seq 1 30); do
+            if body="$(curl --silent --fail --max-time 10 "${url}")"; then
+              echo "Attempt ${attempt}: ${body}"
+              echo "${body}" | grep -q '"status": *"healthy"' && exit 0
+              echo "Health payload did not report 'healthy'."
+            else
+              echo "Attempt ${attempt}: ${url} is not reachable yet."
+            fi
+            sleep 10
+          done
+          echo "::error::Deployment did not become healthy at ${url} within 5 minutes."
+          exit 1
