@@ -38,5 +38,8 @@ line-ending = "lf"
 [tool.pytest.ini_options]
 minversion = "8.0"
 testpaths = ["tests"]
+# Import the app package from the repository root, so the `pytest` console
+# script behaves exactly like `python -m pytest` on a laptop and in CI.
+pythonpath = ["."]
 addopts = "-ra --strict-markers"
 filterwarnings = ["error"]

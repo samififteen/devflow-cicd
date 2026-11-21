@@ -177,6 +177,7 @@ Dockerfile           slim base, non-root user, Gunicorn, healthcheck
 docker-compose.yml   local container run on :8000
 render.yaml          Render blueprint: Docker service, /health, autoDeploy false
 pyproject.toml       Ruff and pytest configuration
+LICENSE              MIT license text
 run.py               local development entry point
 .env.example         every setting, documented; no real secrets
 SECURITY.md          reporting and secret-handling policy
@@ -201,10 +202,10 @@ SECURITY.md          reporting and secret-handling policy
 - Render builds from the repository `Dockerfile`; pinning it to the exact GHCR image would
   mean changing `render.yaml` to an `image:` source.
 - Free Render instances sleep, so the first request after idle is slow.
-- Actions are pinned to major tags (`@v4`, `@v5`) rather than commit SHAs. Pin them by SHA
+- Actions are pinned to major tags (`@v7`, `@v6`) rather than commit SHAs. Pin them by SHA
   if you need that guarantee; Dependabot can keep the pins current.
 - No coverage threshold, load testing or staging environment.
 
 ## License
 
-MIT. Add a `LICENSE` file with the MIT text and your name before publishing.
+MIT — see [LICENSE](LICENSE).
